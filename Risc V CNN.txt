@@ -1,0 +1,138 @@
+.data
+input_image:
+.word 1000, 500, 300, 200, 150, 100, 50, 400, 800, 900
+
+W1:
+.word 500, 200, 300, 400, 250, 150, 100, 50, 300, 700
+.word 600, 150, 200, 300, 100, 500, 1000, 200, 100, 300
+.word 100, 600, 400, 1000, 500, 700, 200, 250, 150, 50
+.word 200, 300, 100, 1000, 400, 600, 800, 100, 50, 1000
+.word 200, 300, 600, 700, 100, 150, 200, 300, 500, 100
+.word 50, 400, 1000, 800, 500, 300, 150, 1000, 600, 200
+.word 50, 100, 1000, 700, 600, 300, 50, 400, 100, 300
+.word 600, 700, 800, 250, 100, 600, 700, 500, 100, 300
+.word 200, 150, 100, 50, 600, 500, 700, 300, 200, 500
+.word 600, 1000, 50, 200, 300, 800, 600, 400, 200, 1000
+
+b1:
+.word 100, 200, 150, 300, 500, 700, 100, 150, 200, 50
+
+W2:
+.word 500, 700, 100, 200, 300, 800, 900, 1000, 300, 400
+.word 600, 200, 100, 700, 1000, 1500, 500, 200, 300, 400
+.word 200, 1500, 1000, 900, 300, 200, 50, 100, 500, 700
+.word 1000, 1500, 800, 100, 1000, 50, 200, 250, 500, 1000
+.word 400, 300, 700, 600, 400, 100, 150, 250, 700, 100
+.word 50, 200, 600, 700, 500, 300, 600, 700, 1000, 500
+.word 200, 250, 300, 400, 100, 1000, 200, 1500, 50, 400
+.word 800, 1000, 700, 300, 150, 100, 50, 600, 700, 200
+.word 500, 1000, 1500, 300, 150, 700, 1000
+
+b2:
+.word 1500, -100, 500, 1000, 200, 300, 100, 500, 1500, -500
+
+Z1: .space 40
+A1: .space 40
+Z2: .space 40
+A2: .space 40
+
+.text
+.globl _start
+_start:
+li t5, 0
+li t6, 10
+la t0, input_image
+la t1, W1
+la t2, b1
+la t3, Z1
+la t4, A1
+z1_loop:
+li t7, 0
+li t8, 0
+la s0, input_image
+add s1, t1, t5 # W1[i] base
+li s2, 10 # 10 input features
+z1_dot:
+lw a0, 0(s0)
+lw a1, 0(s1)
+mul a2, a0, a1
+add t7, t7, a2
+addi s0, s0, 4
+addi s1, s1, 4
+addi s2, s2, -1
+bnez s2, z1_dot
+lw a3, 0(t2)
+add t7, t7, a3
+sw t7, 0(t3\\\
+blt t7, zero, relu_z1_zero
+sw t7, 0(t4)
+j relu_z1_done
+relu_z1_zero:
+sw x0, 0(t4)
+relu_z1_done:
+addi t2, t2, 4
+addi t3, t3, 4
+addi t4, t4, 4
+addi t5, t5, 40 # advance by 10*4B
+addi t8, t8, 1
+blt t8, t6, z1_loop
+
+# Z2 = W2 * A1 + b2
+li t5, 0
+la t0, A1
+la t1, W2
+la t2, b2
+la t3, Z2
+la t4, A2
+z2_loop:
+li t7, 0
+li t8, 0
+la s0, A1
+add s1, t1, t5
+li s2, 10
+z2_dot:
+lw a0, 0(s0)
+lw a1, 0(s1)
+mul a2, a0, a1
+add t7, t7, a2
+addi s0, s0, 4
+addi s1, s1, 4
+addi s2, s2, -1
+bnez s2, z2_dot
+lw a3, 0(t2)
+add t7, t7, a3
+sw t7, 0(t3)
+blt t7, zero, relu_z2_zero
+sw t7, 0(t4)
+j relu_z2_done
+relu_z2_zero:
+sw x0, 0(t4)
+relu_z2_done:
+addi t2, t2, 4
+addi t3, t3, 4
+addi t4, t4, 4
+addi t5, t5, 40 # advance by 10*4B
+addi t8, t8, 1
+blt t8, t6, z2_loop
+
+# Argmax(A2)
+la t0, A2
+li t1, -32768
+li t2, -1
+li t3, 0
+find_max:
+lw a0, 0(t0)
+bgt a0, t1, update_max
+j skip_max
+update_max:
+mv t1, a0
+mv t2, t3
+skip_max:
+addi t0, t0, 4
+addi t3, t3, 1
+li t4, 10
+blt t3, t4, find_max
+
+# Exit syscall
+li a7, 10
+ecall
