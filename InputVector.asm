@@ -1,4 +1,5 @@
-.data
+.section .rodata
+.globl input_vec
 input_vec:
     .float 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     .float 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
